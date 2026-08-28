@@ -1,10 +1,9 @@
 import React from 'react'
-
-export default function StatCard({ title, value }) {
+nexport default function StatCard({ title, value }) {
   return (
-    <div className="bg-gradient-to-br from-gray-700 to-gray-800 p-4 rounded-lg shadow flex flex-col">
-      <div className="text-sm text-gray-300">{title}</div>
-      <div className="mt-2 text-2xl font-bold">{value}</div>
+    <div className="card p-6 flex flex-col">
+      <div className="text-sm text-[#66635B]">{title}</div>
+      <div className="mt-3 text-2xl font-serif font-semibold text-[#191919]">{value}</div>
     </div>
   )
 }
