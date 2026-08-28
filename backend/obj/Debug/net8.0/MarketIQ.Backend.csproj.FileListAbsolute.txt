@@ -31,3 +31,4 @@ D:\MarketIQ-SaaS\backend\obj\Debug\net8.0\refint\MarketIQ.Backend.dll
 D:\MarketIQ-SaaS\backend\obj\Debug\net8.0\MarketIQ.Backend.pdb
 D:\MarketIQ-SaaS\backend\obj\Debug\net8.0\MarketIQ.Backend.genruntimeconfig.cache
 D:\MarketIQ-SaaS\backend\obj\Debug\net8.0\ref\MarketIQ.Backend.dll
+D:\MarketIQ-SaaS\backend\obj\Debug\net8.0\MarketIQ.Backend.sourcelink.json
