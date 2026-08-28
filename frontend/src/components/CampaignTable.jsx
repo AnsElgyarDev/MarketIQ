@@ -5,7 +5,6 @@ export default function CampaignTable({
   selectedIds = [],
   setSelectedIds,
 }) {
-  // Only show active campaigns as requested
   const campaigns = useMemo(
     () =>
       (allCampaigns || []).filter(
@@ -28,14 +27,14 @@ export default function CampaignTable({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <div className="text-sm text-[#66635B]">
           Showing {campaigns.length} active campaign(s)
         </div>
         <div className="text-sm">
           <button
             onClick={toggleAll}
-            className="text-sm text-[#C65D3B] hover:underline"
+            className="rounded-lg border border-[#E6E2DD] bg-white px-3 py-1.5 text-sm font-medium text-[#C65D3B] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#DA7756]/60 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#DA7756] focus:ring-offset-2 focus:ring-offset-[#FAF8F5]"
           >
             {(selectedIds || []).length === campaigns.length
               ? "Deselect All"
@@ -44,14 +43,14 @@ export default function CampaignTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-2xl border border-[#E6E2DD] bg-white/80 shadow-sm">
         <table className="min-w-full text-left">
           <thead>
             <tr
               className="text-sm text-[#66635B]"
               style={{ backgroundColor: "#F4F1EA" }}
             >
-              <th className="py-3 pr-4"> </th>
+              <th className="py-3 pr-4 pl-4"> </th>
               <th className="py-3 pr-6">Name</th>
               <th className="py-3 pr-6">Platform</th>
               <th className="py-3 pr-6">Spend</th>
@@ -70,22 +69,27 @@ export default function CampaignTable({
               const cost = c.costPerResult || c.CostPerResult;
               const status = c.status || c.Status;
               const isSelected = (selectedIds || []).includes(id);
+
               return (
                 <tr
                   key={id}
-                  className={`border-b`}
+                  onClick={() => toggle(id)}
+                  className={`cursor-pointer border-b border-[#EFE9E2] transition-all duration-200 hover:bg-neutral-50 ${
+                    isSelected ? "bg-amber-50/60 shadow-sm" : ""
+                  }`}
                   style={{ borderColor: "#EFE9E2" }}
                 >
-                  <td className="py-3 pr-4">
+                  <td className="py-3 pr-4 pl-4">
                     <input
                       aria-label={`select-${id}`}
-                      className="h-4 w-4 rounded border-[#E6E2DD] text-[#C65D3B] bg-white"
+                      className="h-4 w-4 rounded border-[#E6E2DD] bg-white text-[#C65D3B] shadow-sm focus:ring-2 focus:ring-[#DA7756] focus:ring-offset-2 focus:ring-offset-[#FAF8F5]"
                       type="checkbox"
                       checked={isSelected}
+                      onClick={(event) => event.stopPropagation()}
                       onChange={() => toggle(id)}
                     />
                   </td>
-                  <td className="py-3 pr-6 text-[#191919]">{name}</td>
+                  <td className="py-3 pr-6 text-[#191919] font-medium">{name}</td>
                   <td className="py-3 pr-6 text-[#66635B]">{platform}</td>
                   <td className="py-3 pr-6 text-[#191919]">
                     ${Number(spend).toLocaleString()}
@@ -96,12 +100,11 @@ export default function CampaignTable({
                   </td>
                   <td className="py-3 pr-6">
                     <span
-                      className={`px-2 py-1 rounded`}
-                      style={{
-                        backgroundColor:
-                          status === "Active" ? "#E7F6EE" : "#FFF4E6",
-                        color: status === "Active" ? "#166534" : "#7C2D12",
-                      }}
+                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                        status === "Active"
+                          ? "bg-[#E7F6EE] text-[#166534]"
+                          : "bg-[#FFF4E6] text-[#7C2D12]"
+                      }`}
                     >
                       {status}
                     </span>
@@ -111,7 +114,7 @@ export default function CampaignTable({
             })}
             {campaigns.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-6 text-[#66635B]">
+                <td colSpan={7} className="py-6 text-center text-[#66635B]">
                   No active campaigns found.
                 </td>
               </tr>
