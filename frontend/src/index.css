@@ -3,24 +3,44 @@
 @tailwind utilities;
 
 :root {
-  --muted: #66635B;
-  --accent: #C65D3B;
-  --accent-strong: #DA7756;
+  --muted: #66635b;
+  --accent: #c65d3b;
+  --accent-strong: #da7756;
   --charcoal: #191919;
-  --border: #E6E2DD;
+  --border: #e6e2dd;
 }
 
-html, body, #root { height: 100%; }
-body { background-color: #FAF8F5; color: var(--charcoal); font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  background-color: #faf8f5;
+  color: var(--charcoal);
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial;
+}
 
 /* Card utility for editorial look */
 .card {
   background: #ffffff;
   border: 1px solid var(--border);
-  box-shadow: 0 1px 2px rgba(25,25,25,0.04);
+  box-shadow: 0 1px 2px rgba(25, 25, 25, 0.04);
   border-radius: 0.5rem;
 }
-n/* Small table tweaks */
-table { border-collapse: collapse; }
-th, td { padding: 0.75rem 1rem; }
 
+n/* Small table tweaks */
+table {
+  border-collapse: collapse;
+}
+th,
+td {
+  padding: 0.75rem 1rem;
+}
