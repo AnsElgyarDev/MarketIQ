@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+body { @apply bg-gray-900 text-gray-100; }
+
+/* Small tweaks for dark theme */
+.table td, .table th { border-color: rgba(255,255,255,0.05); }
