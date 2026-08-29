@@ -1,20 +1,41 @@
-import React, { useEffect, useState } from 'react'
-import StatCard from './components/StatCard'
-import CampaignTable from './components/CampaignTable'
-import AIInsightsPanel from './components/AIInsightsPanel'
-import ThemeToggle from './components/ThemeToggle'
+﻿import React, { useEffect, useState } from "react"
+import StatCard from "./components/StatCard"
+import CampaignTable from "./components/CampaignTable"
+import AIInsightsPanel from "./components/AIInsightsPanel"
+import ThemeToggle from "./components/ThemeToggle"
+
+const THEME_KEY = "marketiq-theme"
 
 export default function App() {
   const [campaigns, setCampaigns] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  // Lifted selection state so AI panel can consume selected IDs directly
   const [selectedIds, setSelectedIds] = useState([])
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === "undefined") return "light"
+    try {
+      const saved = localStorage.getItem(THEME_KEY)
+      if (saved === "light" || saved === "dark") return saved
+      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+    } catch {
+      return "light"
+    }
+  })
+
+  useEffect(() => {
+    const root = document.documentElement
+    root.classList.toggle("dark", theme === "dark")
+    try {
+      localStorage.setItem(THEME_KEY, theme)
+    } catch {
+      // ignore storage failures in private mode or restricted browsers
+    }
+  }, [theme])
 
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch('http://localhost:5000/api/campaigns')
+        const res = await fetch("http://localhost:5000/api/campaigns")
         if (!res.ok) throw new Error(await res.text())
         const data = await res.json()
         setCampaigns(data)
@@ -24,43 +45,74 @@ export default function App() {
         setLoading(false)
       }
     }
+
     load()
   }, [])
 
   return (
-    <div className="min-h-screen p-8 bg-[#FAF8F5] text-[#191919]">
-      <header className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-serif font-semibold">MarketIQ</h1>
-          <p className="text-sm mt-1 text-[#66635B]">AI-powered ad campaign optimizer</p>
+    <div className="min-h-screen bg-[#FBF9F5] dark:bg-[#171715] text-[#191919] dark:text-[#ECE9E3] transition-colors duration-200 p-8">
+      <div className="mx-auto max-w-7xl">
+        <header className="mb-8 flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <div
+              role="img"
+              aria-label="MarketIQ logo"
+              tabIndex={0}
+              className="inline-flex items-center gap-2 transform-gpu rounded-full border border-[#E6E2DD] bg-white/80 px-3 py-1.5 text-xs font-medium uppercase tracking-[0.18em] text-[#66635B] shadow-sm transition-all duration-300 ease-out hover:scale-[1.05] hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#DA7756] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FAF8F5] cursor-pointer animate-fade-in-up logo-bouncy dark:border-[#2E2E2A] dark:bg-[#21211F]/80 dark:text-[#9E9A90] dark:focus-visible:ring-offset-[#171715]"
+            >
+              MarketIQ
+            </div>
+            <h1 className="mt-4 text-3xl font-serif font-semibold tracking-tight text-[#191919] transition-all duration-300 ease-out transform-gpu hover:translate-y-[-2px] dark:text-[#ECE9E3]">
+              AI-powered ad campaign optimizer
+            </h1>
+            <p className="mt-2 text-sm text-[#66635B] dark:text-[#9E9A90]">
+              Monitor performance signals, compare strategy, and unlock the next best move.
+            </p>
+          </div>
+
+          <div className="flex items-start">
+            <ThemeToggle theme={theme} setTheme={setTheme} />
+          </div>
+        </header>
+
+        <section className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+          <StatCard title="Total Spend" value="$12,450" />
+          <StatCard title="Avg ROAS" value="3.8x" />
+          <StatCard title="Wasted Budget" value="$1,200" />
+        </section>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="rounded-2xl border border-[#E6E2DD] bg-white p-6 shadow-sm transition-all duration-200 hover:shadow-lg dark:border-[#2E2E2A] dark:bg-[#21211F] lg:col-span-2">
+            <h2 className="mb-4 text-xl font-serif font-medium text-[#191919] dark:text-[#ECE9E3]">Active Campaigns</h2>
+
+            {loading && (
+              <div className="animate-fade-in-up rounded-xl border border-[#E6E2DD] bg-[#F8F5F1] p-4 text-sm text-[#66635B] dark:border-[#2E2E2A] dark:bg-[#262521] dark:text-[#9E9A90]">
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#DA7756]/30 border-t-[#DA7756]" />
+                  Loading campaigns...
+                </span>
+              </div>
+            )}
+
+            {error && (
+              <div className="animate-fade-in-up rounded-xl border border-[#F7D7CF] bg-[#FFF7F4] p-4 text-sm text-[#C65D3B] dark:border-[#4A312D] dark:bg-[#2D2421] dark:text-[#E9B09A]">
+                Error: {error}
+              </div>
+            )}
+
+            {!loading && !error && (
+              <CampaignTable campaigns={campaigns} selectedIds={selectedIds} setSelectedIds={setSelectedIds} />
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-[#E6E2DD] bg-white p-6 shadow-sm transition-all duration-200 hover:shadow-lg dark:border-[#2E2E2A] dark:bg-[#21211F]">
+            <h2 className="mb-4 text-xl font-serif font-medium text-[#191919] dark:text-[#ECE9E3]">AI Insights</h2>
+            <AIInsightsPanel selectedIds={selectedIds} campaigns={campaigns} />
+          </div>
         </div>
 
-        <ThemeToggle theme={localStorage.getItem('marketiq-theme') === 'dark' ? 'dark' : 'light'} setTheme={(t) => { document.documentElement.classList.toggle('dark', t === 'dark'); try{ localStorage.setItem('marketiq-theme', t)}catch{} }} />
-      </header>
-
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <StatCard title="Total Spend" value="$12,450" />
-        <StatCard title="Avg ROAS" value="3.8x" />
-        <StatCard title="Wasted Budget" value="$1,200" />
-      </section>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 card p-6">
-          <h2 className="text-xl font-serif font-medium mb-4 text-[#191919]">Active Campaigns</h2>
-          {loading && <div className="text-[#66635B]">Loading campaigns...</div>}
-          {error && <div className="text-red-500">Error: {error}</div>}
-          {!loading && !error && (
-            <CampaignTable campaigns={campaigns} selectedIds={selectedIds} setSelectedIds={setSelectedIds} />
-          )}
-        </div>
-
-        <div className="card p-6">
-          <h2 className="text-xl font-serif font-medium mb-4 text-[#191919]">AI Insights</h2>
-          <AIInsightsPanel selectedIds={selectedIds} campaigns={campaigns} />
-        </div>
+        <footer className="mt-8 text-sm text-[#66635B] dark:text-[#9E9A90]">MarketIQ — demo UI</footer>
       </div>
-
-      <footer className="mt-8 text-sm text-[#66635B]">MarketIQ — demo UI</footer>
     </div>
   )
 }
