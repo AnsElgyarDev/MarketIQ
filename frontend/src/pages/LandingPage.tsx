@@ -32,7 +32,7 @@ export default function LandingPage(): JSX.Element {
       <nav className="sticky top-0 z-40 backdrop-blur-md bg-white/70 dark:bg-[#0b1013]/60 border-b border-slate-200 dark:border-slate-800">
         <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-3">
-            <img src={logoSrc} alt="MarketIQ" className="h-8 w-8 rounded-sm object-contain" />
+                      <img src={logoSrc} alt="MarketIQ" className="h-9 w-9 rounded-sm object-contain" />
             <span className="font-semibold tracking-wide">MARKETIQ</span>
           </Link>
 
