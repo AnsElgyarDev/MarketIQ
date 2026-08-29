@@ -1,5 +1,20 @@
 ﻿import React, { useMemo } from "react"
 
+function formatCurrency(value, fractionDigits = 0) {
+  try {
+    let num = value
+    if (typeof value === 'string') {
+      num = Number(String(value).replace(/[^0-9.-]+/g, ''))
+    }
+    if (typeof num === 'number' && !isNaN(num)) {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: fractionDigits }).format(num)
+    }
+  } catch (e) {
+    // ignore
+  }
+  return String(value)
+}
+
 export default function CampaignTable({ campaigns: allCampaigns, selectedIds = [], setSelectedIds }) {
   const campaigns = useMemo(() => (allCampaigns || []).filter(c => c.status === "Active" || c.Status === "Active"), [allCampaigns])
 
@@ -82,9 +97,9 @@ export default function CampaignTable({ campaigns: allCampaigns, selectedIds = [
 
                   <td className="px-6 py-3 font-medium text-[#191919] dark:text-[#ECE9E3]">{name}</td>
                   <td className="px-6 py-3 text-[#66635B] dark:text-[#9E9A90]">{platform}</td>
-                  <td className="px-6 py-3 text-[#191919] dark:text-[#ECE9E3]">${Number(spend).toLocaleString()}</td>
+                  <td className="px-6 py-3 text-[#191919] dark:text-[#ECE9E3]">{formatCurrency(spend, 0)}</td>
                   <td className="px-6 py-3 text-[#191919] dark:text-[#ECE9E3]">{conversions}</td>
-                  <td className="px-6 py-3 text-[#191919] dark:text-[#ECE9E3]">${Number(cost).toFixed(2)}</td>
+                  <td className="px-6 py-3 text-[#191919] dark:text-[#ECE9E3]">{formatCurrency(cost, 2)}</td>
                   <td className="px-6 py-3">
                     <span className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-medium ${status === "Active" ? "bg-[#E7F6EE] text-[#166534] dark:bg-[#1E382B] dark:text-[#B7E8CB]" : "bg-[#FFF4E6] text-[#7C2D12] dark:bg-[#33291F] dark:text-[#F3C09A]"}`}>
                       {status}

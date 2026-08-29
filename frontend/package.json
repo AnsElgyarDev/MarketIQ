@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "react-router-dom": "^7.18.3"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.14",

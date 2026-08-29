@@ -1,14 +1,17 @@
 ﻿import React, { useEffect, useState } from "react"
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import StatCard from "./components/StatCard"
 import CampaignTable from "./components/CampaignTable"
 import AIInsightsPanel from "./components/AIInsightsPanel"
 import ThemeToggle from "./components/ThemeToggle"
+import Landing from './pages/Landing'
+import { mockCampaigns } from './data/mockData'
 
 const THEME_KEY = "marketiq-theme"
 
 export default function App() {
-  const [campaigns, setCampaigns] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [campaigns, setCampaigns] = useState(mockCampaigns || [])
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [selectedIds, setSelectedIds] = useState([])
   const [theme, setTheme] = useState(() => {
@@ -32,27 +35,23 @@ export default function App() {
     }
   }, [theme])
 
+  // Using local mock data so the UI loads without external API
   useEffect(() => {
-    async function load() {
-      try {
-        const res = await fetch("http://localhost:5000/api/campaigns")
-        if (!res.ok) throw new Error(await res.text())
-        const data = await res.json()
-        setCampaigns(data)
-      } catch (err) {
-        setError(err.message || String(err))
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    load()
+    setCampaigns(mockCampaigns || [])
+    setLoading(false)
   }, [])
 
+
   return (
-    <div className="min-h-screen bg-[#FBF9F5] dark:bg-[#171715] text-[#191919] dark:text-[#ECE9E3] transition-colors duration-200 p-8">
-      <div className="mx-auto max-w-7xl">
-        <header className="mb-8 flex items-start justify-between gap-4">
+    <Router>
+      <Routes>
+        <Route path="/" element={<Landing/>} />
+        <Route
+          path="/dashboard"
+          element={(
+            <div className="min-h-screen bg-[#FBF9F5] dark:bg-[#171715] text-[#191919] dark:text-[#ECE9E3] transition-colors duration-200 p-8">
+              <div className="mx-auto max-w-7xl">
+                <header className="mb-8 flex items-start justify-between gap-4">
           <div className="flex-1">
             <div
               role="img"
@@ -112,7 +111,10 @@ export default function App() {
         </div>
 
         <footer className="mt-8 text-sm text-[#66635B] dark:text-[#9E9A90]">MarketIQ — demo UI</footer>
-      </div>
-    </div>
+              </div>
+            </div>
+          )} />
+      </Routes>
+    </Router>
   )
 }
