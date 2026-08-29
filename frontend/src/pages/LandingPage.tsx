@@ -18,6 +18,10 @@ const HeroBadge = () => (
   </motion.div>
 )
 
+const handleOAuthLogin = (provider: 'google' | 'tiktok') => {
+  window.location.href = `http://localhost:5000/api/auth/login/${provider}`
+}
+
 const Metric = ({ label, value }: { label: string; value: string }) => (
   <div className="flex flex-col items-center">
     <div className="text-2xl font-semibold text-[#111827] dark:text-[#f3efe9]">{value}</div>
@@ -32,7 +36,7 @@ export default function LandingPage(): JSX.Element {
       <nav className="sticky top-0 z-40 backdrop-blur-md bg-white/70 dark:bg-[#0b1013]/60 border-b border-slate-200 dark:border-slate-800">
         <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-3">
-                      <img src={logoSrc} alt="MarketIQ" className="h-9 w-9 rounded-sm object-contain" />
+            <img src={logoSrc} alt="MarketIQ" className="h-9 w-9 rounded-sm object-contain" />
             <span className="font-semibold tracking-wide">MARKETIQ</span>
           </Link>
 
@@ -44,12 +48,20 @@ export default function LandingPage(): JSX.Element {
           </div>
 
           <div className="flex items-center gap-3">
-            <Link to="/dashboard" className="hidden md:inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700">
-              Live Demo
-            </Link>
-            <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-md bg-[#d97757] px-4 py-2 text-sm font-medium text-white hover:opacity-95 shadow-sm">
-              Get Early Access
-            </Link>
+            <button
+              type="button"
+              onClick={() => handleOAuthLogin('google')}
+              className="hidden md:inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700"
+            >
+              Login with Google
+            </button>
+            <button
+              type="button"
+              onClick={() => handleOAuthLogin('tiktok')}
+              className="inline-flex items-center gap-2 rounded-md bg-[#d97757] px-4 py-2 text-sm font-medium text-white hover:opacity-95 shadow-sm"
+            >
+              Login with TikTok
+            </button>
           </div>
         </div>
       </nav>
@@ -79,13 +91,21 @@ export default function LandingPage(): JSX.Element {
             </motion.p>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-md bg-[#d97757] px-5 py-3 text-sm font-semibold text-white shadow hover:translate-y-[-2px] transition-transform">
-                Launch Free Trial
-              </Link>
+              <button
+                type="button"
+                onClick={() => handleOAuthLogin('google')}
+                className="inline-flex items-center gap-2 rounded-md bg-[#d97757] px-5 py-3 text-sm font-semibold text-white shadow hover:translate-y-[-2px] transition-transform"
+              >
+                Login with Google
+              </button>
 
-              <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-md border border-slate-300 dark:border-slate-700 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">
-                Explore Dashboard Demo
-              </Link>
+              <button
+                type="button"
+                onClick={() => handleOAuthLogin('tiktok')}
+                className="inline-flex items-center gap-2 rounded-md border border-slate-300 dark:border-slate-700 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+              >
+                Login with TikTok
+              </button>
             </div>
 
             {/* Metrics & Social Proof */}

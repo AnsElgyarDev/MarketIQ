@@ -10,21 +10,46 @@ import { mockCampaigns, type Campaign } from './data/mockData'
 const THEME_KEY = "marketiq-theme"
 type ThemeMode = "light" | "dark"
 
+type AuthState = {
+  authenticated: boolean
+  provider?: string
+  user?: {
+    id?: string
+    name?: string
+    email?: string
+  }
+}
+
 type DashboardProps = {
   theme: ThemeMode
   setTheme: React.Dispatch<React.SetStateAction<ThemeMode>>
+  authState: AuthState
+  setAuthState: React.Dispatch<React.SetStateAction<AuthState>>
 }
 
-function Dashboard({ theme, setTheme }: DashboardProps) {
+function Dashboard({ theme, setTheme, authState, setAuthState }: DashboardProps) {
   const [campaigns, setCampaigns] = useState<Campaign[]>(mockCampaigns || [])
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const authParams = new URLSearchParams(window.location.search)
+  const authProvider = authParams.get('provider')
+  const authStatus = authParams.get('auth')
 
   useEffect(() => {
     setCampaigns(mockCampaigns || [])
     setLoading(false)
   }, [])
+
+  const handleLogout = async () => {
+    try {
+      await fetch('http://localhost:5000/api/auth/logout', { credentials: 'include' })
+    } catch {
+      // ignore network errors; redirect still happens via server response when supported
+    }
+
+    window.location.href = 'http://localhost:5000/api/auth/logout'
+  }
 
   return (
     <div className="min-h-screen bg-[#FBF9F5] dark:bg-[#171715] text-[#191919] dark:text-[#ECE9E3] transition-colors duration-200 p-8">
@@ -47,7 +72,19 @@ function Dashboard({ theme, setTheme }: DashboardProps) {
             </p>
           </div>
 
-          <div className="flex items-start">
+          <div className="flex items-start gap-3">
+            {(authStatus === 'success' || authState.authenticated) && (authProvider || authState.provider) && (
+              <div className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-200">
+                {(authProvider || authState.provider)?.toUpperCase()} connected
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-[#21211F] dark:text-slate-200 dark:hover:bg-[#292725]"
+            >
+              Logout
+            </button>
             <ThemeToggle theme={theme} setTheme={setTheme} />
           </div>
         </header>
@@ -105,6 +142,7 @@ export default function App() {
       return "light"
     }
   })
+  const [authState, setAuthState] = useState<AuthState>({ authenticated: false })
 
   useEffect(() => {
     const root = document.documentElement
@@ -116,11 +154,34 @@ export default function App() {
     }
   }, [theme])
 
+  useEffect(() => {
+    fetch('http://localhost:5000/api/auth/me', { credentials: 'include' })
+      .then((response) => {
+        if (!response.ok) {
+          setAuthState({ authenticated: false })
+          return
+        }
+
+        return response.json()
+      })
+      .then((payload) => {
+        if (!payload) return
+        setAuthState({
+          authenticated: Boolean(payload.authenticated),
+          provider: payload.provider,
+          user: payload.user
+        })
+      })
+      .catch(() => {
+        setAuthState({ authenticated: false })
+      })
+  }, [])
+
   return (
     <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/dashboard" element={<Dashboard theme={theme} setTheme={setTheme} />} />
+        <Route path="/dashboard" element={<Dashboard theme={theme} setTheme={setTheme} authState={authState} setAuthState={setAuthState} />} />
       </Routes>
     </Router>
   )
