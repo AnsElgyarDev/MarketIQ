@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import StatCard from './components/StatCard'
 import CampaignTable from './components/CampaignTable'
 import AIInsightsPanel from './components/AIInsightsPanel'
+import ThemeToggle from './components/ThemeToggle'
 
 export default function App() {
   const [campaigns, setCampaigns] = useState([])
@@ -28,9 +29,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen p-8 bg-[#FAF8F5] text-[#191919]">
-      <header className="mb-8">
-        <h1 className="text-3xl font-serif font-semibold">MarketIQ</h1>
-        <p className="text-sm mt-1 text-[#66635B]">AI-powered ad campaign optimizer</p>
+      <header className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-serif font-semibold">MarketIQ</h1>
+          <p className="text-sm mt-1 text-[#66635B]">AI-powered ad campaign optimizer</p>
+        </div>
+
+        <ThemeToggle theme={localStorage.getItem('marketiq-theme') === 'dark' ? 'dark' : 'light'} setTheme={(t) => { document.documentElement.classList.toggle('dark', t === 'dark'); try{ localStorage.setItem('marketiq-theme', t)}catch{} }} />
       </header>
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

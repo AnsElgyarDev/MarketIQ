@@ -36,7 +36,18 @@ body {
   border-radius: 0.5rem;
 }
 
-n/* Small table tweaks */
+/* Dark mode overrides when .dark class is present on <html> */
+.dark body {
+  background-color: #171715;
+  color: #ECE9E3;
+}n
+.dark .card {
+  background: #21211F;
+  border-color: #2E2E2A;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+}
+
+/* Table tweaks */
 table {
   border-collapse: collapse;
 }
@@ -44,3 +55,12 @@ th,
 td {
   padding: 0.75rem 1rem;
 }
+
+/* Header and table header dark backgrounds */
+.dark thead tr {
+  background: #282824;
+}
+.dark tbody tr:hover {
+  background: #282824;
+}
+
