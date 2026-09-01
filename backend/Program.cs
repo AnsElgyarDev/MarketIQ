@@ -67,6 +67,11 @@ authBuilder.AddGoogle(options =>
     options.ClientSecret = googleClientSecret ?? string.Empty;
     options.CallbackPath = "/api/auth/google/callback";
     options.SaveTokens = true;
+
+    // Make correlation cookie tolerant for local development (SameSite=Lax, allow non-HTTPS if SameAsRequest)
+    options.CorrelationCookie.SameSite = SameSiteMode.Lax;
+    options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.CorrelationCookie.HttpOnly = true;
 });
 
 // TikTok - read client key/id and secret from configuration or environment variables and register the handler
@@ -95,6 +100,12 @@ authBuilder.AddOAuth("TikTok", options =>
     options.Scope.Add("user.info.basic");
     options.SaveTokens = true;
     options.ClaimActions.MapJsonKey(ClaimTypes.NameIdentifier, "open_id");
+
+    // Correlation cookie settings to cooperate with local HTTP dev servers
+    options.CorrelationCookie.SameSite = SameSiteMode.Lax;
+    options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.CorrelationCookie.HttpOnly = true;
+
     options.Events = new OAuthEvents
     {
         OnCreatingTicket = async context =>
@@ -147,6 +158,14 @@ authBuilder.AddOAuth("TikTok", options =>
     };
 });
 
+
+// Configure cookie policy to be tolerant for local development (allows SameSite=Lax and permits cookies over http when SameAsRequest)
+builder.Services.Configure<CookiePolicyOptions>(options =>
+{
+    options.MinimumSameSitePolicy = SameSiteMode.Lax;
+    options.HttpOnly = Microsoft.AspNetCore.CookiePolicy.HttpOnlyPolicy.Always;
+    options.Secure = CookieSecurePolicy.SameAsRequest;
+});
 
 builder.Services.AddAuthorization();
 
