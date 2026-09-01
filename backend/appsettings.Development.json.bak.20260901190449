@@ -1,0 +1,12 @@
+{
+  "Authentication": {
+    "Google": {
+      "ClientId": "set-this-via-user-secrets-or-environment",
+      "ClientSecret": "set-this-via-user-secrets-or-environment"
+    },
+    "TikTok": {
+      "ClientKey": "set-this-via-user-secrets-or-environment",
+      "ClientSecret": "set-this-via-user-secrets-or-environment"
+    }
+  }
+}
