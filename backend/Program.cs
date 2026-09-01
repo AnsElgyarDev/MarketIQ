@@ -48,109 +48,104 @@ authBuilder.AddCookie(options =>
 var providerRegistrationWarnings = new System.Collections.Generic.List<string>();
 var config = builder.Configuration;
 
-// Google - register only when both client id and secret are provided (and not the placeholder)
-var googleClientId = config["Authentication:Google:ClientId"];
-var googleClientSecret = config["Authentication:Google:ClientSecret"];
-var googlePlaceholder = "set-this-via-user-secrets-or-environment";
-var googleConfigured = !string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(googleClientSecret)
-    && googleClientId != googlePlaceholder && googleClientSecret != googlePlaceholder;
+// Google - read from configuration or environment variables and register the handler
+var googleClientId = config["Authentication:Google:ClientId"] ?? Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID");
+var googleClientSecret = config["Authentication:Google:ClientSecret"] ?? Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET");
 
-if (googleConfigured)
+var googleConfigured = !string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(googleClientSecret);
+
+if (!googleConfigured)
 {
-   authBuilder.AddGoogle(options =>
-   {
-       options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-       options.ClientId = googleClientId!;
-       options.ClientSecret = googleClientSecret!;
-       options.CallbackPath = "/api/auth/google/callback";
-       options.SaveTokens = true;
-   });
-}
-else
-{
-   providerRegistrationWarnings.Add("Google authentication not registered because ClientId/ClientSecret are missing or placeholders. Set them via User Secrets or appsettings.Development.json.");
+    providerRegistrationWarnings.Add("Google authentication has missing ClientId/ClientSecret. Set them via User Secrets, environment variables (GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET), or appsettings.");
 }
 
-// TikTok - support both ClientKey (existing) and ClientId (common name). Register only when present.
-var tiktokClientKey = config["Authentication:TikTok:ClientKey"];
-var tiktokClientId = config["Authentication:TikTok:ClientId"]; // optional alternate name
-var tiktokClientSecret = config["Authentication:TikTok:ClientSecret"];
-var tiktokConfigured = !string.IsNullOrWhiteSpace(tiktokClientSecret) &&
-    (!string.IsNullOrWhiteSpace(tiktokClientKey) || !string.IsNullOrWhiteSpace(tiktokClientId)) &&
-    tiktokClientSecret != googlePlaceholder; // reuse placeholder check name
-
-if (tiktokConfigured)
+// Register Google handler unconditionally so the scheme is available; credentials may come from env/user-secrets at runtime
+authBuilder.AddGoogle(options =>
 {
-   var resolvedTikTokClientId = !string.IsNullOrWhiteSpace(tiktokClientKey) ? tiktokClientKey : tiktokClientId;
+    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.ClientId = googleClientId ?? string.Empty;
+    options.ClientSecret = googleClientSecret ?? string.Empty;
+    options.CallbackPath = "/api/auth/google/callback";
+    options.SaveTokens = true;
+});
 
-   authBuilder.AddOAuth("TikTok", options =>
-   {
-       options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-       options.ClientId = resolvedTikTokClientId!;
-       options.ClientSecret = tiktokClientSecret!;
-       options.CallbackPath = "/api/auth/tiktok/callback";
-       options.AuthorizationEndpoint = "https://www.tiktok.com/v2/auth/authorize/";
-       options.TokenEndpoint = "https://open.tiktokapis.com/v2/oauth/token/";
-       options.UserInformationEndpoint = "https://open.tiktokapis.com/v2/user/info/?fields=open_id,union_id,display_name,avatar_url";
-       options.Scope.Add("user.info.basic");
-       options.SaveTokens = true;
-       options.ClaimActions.MapJsonKey(ClaimTypes.NameIdentifier, "open_id");
-       options.Events = new OAuthEvents
-       {
-           OnCreatingTicket = async context =>
-           {
-               var loggerFactory = context.HttpContext.RequestServices.GetService(typeof(ILoggerFactory)) as ILoggerFactory;
-               var logger = loggerFactory?.CreateLogger("OAuth.TikTok") ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
-               try
-               {
-                   using var request = new HttpRequestMessage(HttpMethod.Get, options.UserInformationEndpoint);
-                   request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", context.AccessToken);
+// TikTok - read client key/id and secret from configuration or environment variables and register the handler
+var tiktokClientKey = config["Authentication:TikTok:ClientKey"] ?? Environment.GetEnvironmentVariable("TIKTOK_CLIENT_KEY");
+var tiktokClientId = config["Authentication:TikTok:ClientId"] ?? Environment.GetEnvironmentVariable("TIKTOK_CLIENT_ID"); // optional alternate name
+var tiktokClientSecret = config["Authentication:TikTok:ClientSecret"] ?? Environment.GetEnvironmentVariable("TIKTOK_CLIENT_SECRET");
 
-                   var response = await context.Backchannel.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, context.HttpContext.RequestAborted);
-                   if (!response.IsSuccessStatusCode)
-                   {
-                       var body = await response.Content.ReadAsStringAsync();
-                       var snippet = body?.Length > 1000 ? body.Substring(0, 1000) + "..." : body;
-                       logger.LogWarning("TikTok userinfo request failed with status {StatusCode}. Response body (truncated): {BodySnippet}", response.StatusCode, snippet);
-                       context.Fail($"Failed to retrieve TikTok user information. Status: {response.StatusCode}");
-                       return;
-                   }
-
-                   using var payload = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-                   var user = payload.RootElement.TryGetProperty("data", out var data) && data.TryGetProperty("user", out var userElement)
-                       ? userElement
-                       : payload.RootElement;
-
-                   if (user.TryGetProperty("open_id", out var openId) && !string.IsNullOrWhiteSpace(openId.GetString()))
-                   {
-                       context.Identity?.AddClaim(new Claim(ClaimTypes.NameIdentifier, openId.GetString()!));
-                   }
-
-                   if (user.TryGetProperty("display_name", out var displayName) && !string.IsNullOrWhiteSpace(displayName.GetString()))
-                   {
-                       context.Identity?.AddClaim(new Claim(ClaimTypes.Name, displayName.GetString()!));
-                   }
-
-                   if (user.TryGetProperty("avatar_url", out var avatarUrl) && !string.IsNullOrWhiteSpace(avatarUrl.GetString()))
-                   {
-                       context.Identity?.AddClaim(new Claim("avatar_url", avatarUrl.GetString()!));
-                   }
-
-                   context.Identity?.AddClaim(new Claim("provider", "tiktok"));
-               }
-               catch (Exception ex)
-               {
-                   logger.LogError(ex, "Exception while creating TikTok authentication ticket.");
-                   context.Fail("Exception while retrieving TikTok user info.");
-               }
-           }
-       };
-   });
-}
-else
+if (string.IsNullOrWhiteSpace(tiktokClientSecret) || (string.IsNullOrWhiteSpace(tiktokClientKey) && string.IsNullOrWhiteSpace(tiktokClientId)))
 {
-   providerRegistrationWarnings.Add("TikTok authentication not registered because ClientKey/ClientId or ClientSecret are missing or placeholders. Set them via User Secrets or appsettings.Development.json.");
+    providerRegistrationWarnings.Add("TikTok authentication has missing ClientKey/ClientId or ClientSecret. Set them via User Secrets, environment variables (TIKTOK_CLIENT_KEY/TIKTOK_CLIENT_SECRET), or appsettings.");
 }
+
+var resolvedTikTokClientId = !string.IsNullOrWhiteSpace(tiktokClientKey) ? tiktokClientKey : tiktokClientId;
+var tiktokConfigured = !string.IsNullOrWhiteSpace(resolvedTikTokClientId) && !string.IsNullOrWhiteSpace(tiktokClientSecret);
+
+// Register TikTok handler unconditionally so the scheme is available; credentials should be provided in env/user-secrets
+authBuilder.AddOAuth("TikTok", options =>
+{
+    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.ClientId = resolvedTikTokClientId ?? string.Empty;
+    options.ClientSecret = tiktokClientSecret ?? string.Empty;
+    options.CallbackPath = "/api/auth/tiktok/callback";
+    options.AuthorizationEndpoint = "https://www.tiktok.com/v2/auth/authorize/";
+    options.TokenEndpoint = "https://open.tiktokapis.com/v2/oauth/token/";
+    options.UserInformationEndpoint = "https://open.tiktokapis.com/v2/user/info/?fields=open_id,union_id,display_name,avatar_url";
+    options.Scope.Add("user.info.basic");
+    options.SaveTokens = true;
+    options.ClaimActions.MapJsonKey(ClaimTypes.NameIdentifier, "open_id");
+    options.Events = new OAuthEvents
+    {
+        OnCreatingTicket = async context =>
+        {
+            var loggerFactory = context.HttpContext.RequestServices.GetService(typeof(ILoggerFactory)) as ILoggerFactory;
+            var logger = loggerFactory?.CreateLogger("OAuth.TikTok") ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, options.UserInformationEndpoint);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", context.AccessToken);
+
+                var response = await context.Backchannel.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, context.HttpContext.RequestAborted);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var body = await response.Content.ReadAsStringAsync();
+                    var snippet = body?.Length > 1000 ? body.Substring(0, 1000) + "..." : body;
+                    logger.LogWarning("TikTok userinfo request failed with status {StatusCode}. Response body (truncated): {BodySnippet}", response.StatusCode, snippet);
+                    context.Fail($"Failed to retrieve TikTok user information. Status: {response.StatusCode}");
+                    return;
+                }
+
+                using var payload = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                var user = payload.RootElement.TryGetProperty("data", out var data) && data.TryGetProperty("user", out var userElement)
+                    ? userElement
+                    : payload.RootElement;
+
+                if (user.TryGetProperty("open_id", out var openId) && !string.IsNullOrWhiteSpace(openId.GetString()))
+                {
+                    context.Identity?.AddClaim(new Claim(ClaimTypes.NameIdentifier, openId.GetString()!));
+                }
+
+                if (user.TryGetProperty("display_name", out var displayName) && !string.IsNullOrWhiteSpace(displayName.GetString()))
+                {
+                    context.Identity?.AddClaim(new Claim(ClaimTypes.Name, displayName.GetString()!));
+                }
+
+                if (user.TryGetProperty("avatar_url", out var avatarUrl) && !string.IsNullOrWhiteSpace(avatarUrl.GetString()))
+                {
+                    context.Identity?.AddClaim(new Claim("avatar_url", avatarUrl.GetString()!));
+                }
+
+                context.Identity?.AddClaim(new Claim("provider", "tiktok"));
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Exception while creating TikTok authentication ticket.");
+                context.Fail("Exception while retrieving TikTok user info.");
+            }
+        }
+    };
+});
 
 
 builder.Services.AddAuthorization();
