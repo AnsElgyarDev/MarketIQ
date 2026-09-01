@@ -5,6 +5,7 @@ import CampaignTable from "./components/CampaignTable"
 import AIInsightsPanel from "./components/AIInsightsPanel"
 import ThemeToggle from "./components/ThemeToggle"
 import LandingPage from './pages/LandingPage'
+import LoginPage from './pages/LoginPage'
 import { mockCampaigns, type Campaign } from './data/mockData'
 
 const THEME_KEY = "marketiq-theme"
@@ -181,6 +182,7 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/dashboard" element={<Dashboard theme={theme} setTheme={setTheme} authState={authState} setAuthState={setAuthState} />} />
       </Routes>
     </Router>

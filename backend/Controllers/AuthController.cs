@@ -11,40 +11,106 @@ namespace MarketIQ.Backend.Controllers;
 [Route("api/auth")]
 public class AuthController : ControllerBase
 {
-    private const string FrontendRoot = "http://localhost:5173";
+    private static string FrontendRoot => Environment.GetEnvironmentVariable("FRONTEND_BASE_URL") ?? "http://localhost:5173";
     private const string OAuthTokensCookieName = "marketiq-oauth-tokens";
 
     [HttpGet("login/{provider}")]
-    public IActionResult Login(string provider)
+    public async Task<IActionResult> Login(string provider)
     {
+        // Development fake auth: directly sign in a test user when provider == "dev"
+        if (provider.Equals("dev", StringComparison.OrdinalIgnoreCase))
+        {
+            var redirectUri = $"/api/auth/{provider.ToLowerInvariant()}/callback";
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, "dev-user-1"),
+                new Claim(ClaimTypes.Name, "Developer Test User"),
+                new Claim(ClaimTypes.Email, "dev@example.local"),
+                new Claim("provider", "dev")
+            };
+
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var principal = new ClaimsPrincipal(identity);
+
+            var authProperties = new AuthenticationProperties
+            {
+                IsPersistent = true,
+                IssuedUtc = DateTimeOffset.UtcNow
+            };
+
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, authProperties);
+            return Redirect(redirectUri);
+        }
+
         var scheme = ResolveScheme(provider);
         if (scheme is null)
         {
             return BadRequest(new { error = $"Unsupported provider '{provider}'. Supported providers are 'google' and 'tiktok'." });
         }
 
-        var redirectUri = $"/api/auth/{provider.ToLowerInvariant()}/callback";
-        return Challenge(new AuthenticationProperties { RedirectUri = redirectUri }, scheme);
+        var redirectUriFallback = $"/api/auth/{provider.ToLowerInvariant()}/callback";
+        return Challenge(new AuthenticationProperties { RedirectUri = redirectUriFallback }, scheme);
     }
 
     [HttpGet("{provider}/callback")]
     public async Task<IActionResult> Callback(string provider)
     {
+        if (provider.Equals("dev", StringComparison.OrdinalIgnoreCase))
+        {
+            var devResult = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            if (!devResult.Succeeded || devResult.Principal is null)
+            {
+                return Redirect($"{FrontendRoot}/login?auth=failed&provider={provider}");
+            }
+
+            var principal = devResult.Principal;
+            var claims = principal.Claims.Select(c => new { type = c.Type, value = c.Value }).ToList();
+            var tokenPayload = new
+            {
+                provider,
+                accessToken = "dev-token",
+                refreshToken = (string?)null,
+                idToken = (string?)null,
+                expiresAt = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds(),
+                tokenType = "Bearer",
+                issuedAt = DateTimeOffset.UtcNow.ToString("O"),
+                user = new
+                {
+                    id = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? principal.FindFirstValue("sub"),
+                    name = principal.FindFirstValue(ClaimTypes.Name),
+                    email = principal.FindFirstValue(ClaimTypes.Email),
+                    claims
+                }
+            };
+
+            Response.Cookies.Append(OAuthTokensCookieName, JsonSerializer.Serialize(tokenPayload), new CookieOptions
+            {
+                HttpOnly = true,
+                SameSite = SameSiteMode.Lax,
+                Secure = Request.IsHttps,
+                Path = "/",
+                Expires = DateTimeOffset.UtcNow.AddHours(1)
+            });
+
+            return Redirect($"{FrontendRoot}/dashboard?auth=success&provider={provider}");
+        }
+
         var scheme = ResolveScheme(provider);
         if (scheme is null)
         {
             return BadRequest(new { error = $"Unsupported provider '{provider}'. Supported providers are 'google' and 'tiktok'." });
         }
 
-        var result = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        if (!result.Succeeded || result.Principal is null)
+        var authResult = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        if (!authResult.Succeeded || authResult.Principal is null)
         {
             return Redirect($"{FrontendRoot}/login?auth=failed&provider={provider}");
         }
 
-        var principal = result.Principal;
-        var claims = principal.Claims.Select(c => new { type = c.Type, value = c.Value }).ToList();
-        var tokenPayload = new
+        var result = authResult;
+        var principalFromCookie = result.Principal;
+        var claimsFromCookie = principalFromCookie.Claims.Select(c => new { type = c.Type, value = c.Value }).ToList();
+        var tokenPayloadFromCookie = new
         {
             provider,
             accessToken = result.Properties?.GetTokenValue("access_token"),
@@ -55,20 +121,20 @@ public class AuthController : ControllerBase
             issuedAt = result.Properties?.GetTokenValue(".expires"),
             user = new
             {
-                id = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? principal.FindFirstValue("sub"),
-                name = principal.FindFirstValue(ClaimTypes.Name),
-                email = principal.FindFirstValue(ClaimTypes.Email),
-                claims
+                id = principalFromCookie.FindFirstValue(ClaimTypes.NameIdentifier) ?? principalFromCookie.FindFirstValue("sub"),
+                name = principalFromCookie.FindFirstValue(ClaimTypes.Name),
+                email = principalFromCookie.FindFirstValue(ClaimTypes.Email),
+                claims = claimsFromCookie
             }
         };
 
-        Response.Cookies.Append(OAuthTokensCookieName, JsonSerializer.Serialize(tokenPayload), new CookieOptions
+        Response.Cookies.Append(OAuthTokensCookieName, JsonSerializer.Serialize(tokenPayloadFromCookie), new CookieOptions
         {
             HttpOnly = true,
             SameSite = SameSiteMode.Lax,
             Secure = Request.IsHttps,
             Path = "/",
-            Expires = ParseExpiry(tokenPayload.expiresAt) ?? DateTimeOffset.UtcNow.AddHours(1)
+            Expires = ParseExpiry(tokenPayloadFromCookie.expiresAt) ?? DateTimeOffset.UtcNow.AddHours(1)
         });
 
         return Redirect($"{FrontendRoot}/dashboard?auth=success&provider={provider}");
@@ -111,6 +177,7 @@ public class AuthController : ControllerBase
         {
             "google" => GoogleDefaults.AuthenticationScheme,
             "tiktok" => "TikTok",
+            "dev" => CookieAuthenticationDefaults.AuthenticationScheme,
             _ => null
         };
     }

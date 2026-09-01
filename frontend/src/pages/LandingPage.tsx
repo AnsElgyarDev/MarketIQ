@@ -18,9 +18,8 @@ const HeroBadge = () => (
   </motion.div>
 )
 
-const handleOAuthLogin = (provider: 'google' | 'tiktok') => {
-  window.location.href = `http://localhost:5000/api/auth/login/${provider}`
-}
+// Navigation to dedicated login page
+import { useNavigate } from 'react-router-dom'
 
 const Metric = ({ label, value }: { label: string; value: string }) => (
   <div className="flex flex-col items-center">
@@ -48,20 +47,8 @@ export default function LandingPage(): JSX.Element {
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => handleOAuthLogin('google')}
-              className="hidden md:inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700"
-            >
-              Login with Google
-            </button>
-            <button
-              type="button"
-              onClick={() => handleOAuthLogin('tiktok')}
-              className="inline-flex items-center gap-2 rounded-md bg-[#d97757] px-4 py-2 text-sm font-medium text-white hover:opacity-95 shadow-sm"
-            >
-              Login with TikTok
-            </button>
+            <Link to="/login" className="hidden md:inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700">Sign In</Link>
+            <Link to="/login" className="inline-flex items-center gap-2 rounded-md bg-[#d97757] px-4 py-2 text-sm font-medium text-white hover:opacity-95 shadow-sm">Get Started</Link>
           </div>
         </div>
       </nav>
@@ -91,21 +78,9 @@ export default function LandingPage(): JSX.Element {
             </motion.p>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={() => handleOAuthLogin('google')}
-                className="inline-flex items-center gap-2 rounded-md bg-[#d97757] px-5 py-3 text-sm font-semibold text-white shadow hover:translate-y-[-2px] transition-transform"
-              >
-                Login with Google
-              </button>
+              <Link to="/login" className="inline-flex items-center gap-2 rounded-md bg-[#d97757] px-5 py-3 text-sm font-semibold text-white shadow hover:translate-y-[-2px] transition-transform">Get Started</Link>
 
-              <button
-                type="button"
-                onClick={() => handleOAuthLogin('tiktok')}
-                className="inline-flex items-center gap-2 rounded-md border border-slate-300 dark:border-slate-700 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-              >
-                Login with TikTok
-              </button>
+              <Link to="/login" className="inline-flex items-center gap-2 rounded-md border border-slate-300 dark:border-slate-700 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">Sign In</Link>
             </div>
 
             {/* Metrics & Social Proof */}
