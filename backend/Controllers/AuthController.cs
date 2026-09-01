@@ -20,7 +20,6 @@ public class AuthController : ControllerBase
         // Development fake auth: directly sign in a test user when provider == "dev"
         if (provider.Equals("dev", StringComparison.OrdinalIgnoreCase))
         {
-            var redirectUri = $"/api/auth/{provider.ToLowerInvariant()}/callback";
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, "dev-user-1"),
@@ -38,8 +37,39 @@ public class AuthController : ControllerBase
                 IssuedUtc = DateTimeOffset.UtcNow
             };
 
+            // Sign in the developer principal into the cookie authentication scheme
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, authProperties);
-            return Redirect(redirectUri);
+
+            // Build a lightweight token payload for frontend consumption (dev-only)
+            var tokenPayload = new
+            {
+                provider = "dev",
+                accessToken = "dev-token",
+                refreshToken = (string?)null,
+                idToken = (string?)null,
+                expiresAt = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds(),
+                tokenType = "Bearer",
+                issuedAt = DateTimeOffset.UtcNow.ToString("O"),
+                user = new
+                {
+                    id = principal.FindFirstValue(ClaimTypes.NameIdentifier),
+                    name = principal.FindFirstValue(ClaimTypes.Name),
+                    email = principal.FindFirstValue(ClaimTypes.Email)
+                }
+            };
+
+            // Set the same OAuth tokens cookie the real callbacks use so the frontend can read the dev session
+            Response.Cookies.Append(OAuthTokensCookieName, JsonSerializer.Serialize(tokenPayload), new CookieOptions
+            {
+                HttpOnly = true,
+                SameSite = SameSiteMode.Lax,
+                Secure = Request.IsHttps,
+                Path = "/",
+                Expires = DateTimeOffset.UtcNow.AddHours(1)
+            });
+
+            // Redirect directly to the frontend dashboard with success query params
+            return Redirect($"{FrontendRoot}/dashboard?auth=success&provider=dev");
         }
 
         var scheme = ResolveScheme(provider);
