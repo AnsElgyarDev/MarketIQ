@@ -12,5 +12,15 @@
     "D:\\NuGet\\packages\\swashbuckle.aspnetcore.swaggerui\\10.2.3\\swashbuckle.aspnetcore.swaggerui.10.2.3.nupkg.sha512",
     "D:\\NuGet\\packages\\system.text.json\\8.0.5\\system.text.json.8.0.5.nupkg.sha512"
   ],
-  "logs": []
+  "logs": [
+    {
+      "code": "NU1900",
+      "level": "Warning",
+      "message": "Error occurred while getting package vulnerability data: There is not enough space on the disk. : 'C:\\Users\\DELL\\AppData\\Local\\NuGet\\v3-cache\\670c1461c29885f9aa22c281d8b7da90845b38e4$ps_api.nuget.org_v3_index.json\\vuln_data_base.dat-new'.",
+      "projectPath": "D:\\MarketIQ-SaaS\\backend\\MarketIQ.Backend.csproj",
+      "warningLevel": 1,
+      "filePath": "D:\\MarketIQ-SaaS\\backend\\MarketIQ.Backend.csproj",
+      "targetGraphs": []
+    }
+  ]
 }

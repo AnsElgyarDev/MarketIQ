@@ -7,4 +7,10 @@
   <ItemGroup>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Exclude test sources from main web project build so tests live separately -->
+    <Compile Remove="StartupValidatorsTests.cs" />
+    <Compile Remove="HealthEndpointTests.cs" />
+    <None Remove="MarketIQ.Backend.Tests.csproj" />
+  </ItemGroup>
 </Project>

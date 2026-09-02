@@ -1,0 +1,39 @@
+name: CI - Backend
+
+on:
+  push:
+    branches: [ main, clean-auth-start ]
+  pull_request:
+    branches: [ main, clean-auth-start ]
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore, Build
+        run: |
+          dotnet restore backend\MarketIQ.Backend.csproj
+          dotnet build backend\MarketIQ.Backend.csproj --configuration Release --no-restore
+
+      - name: Run tests
+        run: |
+          dotnet test backend\MarketIQ.Backend.Tests.csproj --configuration Release --no-restore --verbosity minimal
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run gitleaks secret scan
+        uses: zricethezav/gitleaks-action@v1.4.0
+        with:
+          args: '--redact'

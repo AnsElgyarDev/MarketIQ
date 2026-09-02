@@ -1,64 +1,105 @@
 using MarketIQ.Backend.Models;
 using MarketIQ.Backend.MockData;
+using MarketIQ.Backend.Config;
+using MarketIQ.Backend.Middleware;
+using MarketIQ.Backend.Infrastructure;
+using MarketIQ.Backend.Services;
+using MarketIQ.Backend.Startup;
+using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure CORS for local testing - allow any origin
+// Configure basic logging (console). Replace with Serilog in future for production sinks.
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+
+// Bind provider configuration early so we can validate startup behavior based on environment.
+var googleSection = builder.Configuration.GetSection("Auth:Providers:Google");
+var googleSettings = new GoogleAuthSettings();
+googleSection.Bind(googleSettings);
+// Register the bound settings instance for later checks (no provider wiring yet)
+builder.Services.AddSingleton(googleSettings);
+
+// Configure CORS - development allows all, production should be restricted via AllowedOrigins config
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+    if (builder.Environment.IsDevelopment())
+    {
+        options.AddPolicy("AllowAll", policy => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+    }
+    else
+    {
+        var origins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? new string[0];
+        options.AddPolicy("DefaultPolicy", p => p.WithOrigins(origins).AllowAnyMethod().AllowAnyHeader().AllowCredentials());
+    }
 });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddSwaggerGen();
+}
+
+// Application services (in-memory for now)
+builder.Services.AddSingleton<ICampaignService, InMemoryCampaignService>();
+// No provider implementations yet - register a safe disabled provider by default
+builder.Services.AddSingleton<IAuthProvider, AuthDisabledProvider>();
 
 var app = builder.Build();
 
-app.UseCors("AllowAll");
+var logger = app.Logger;
 
-// Swagger enabled for testing
-app.UseSwagger();
-app.UseSwaggerUI();
+// Startup validation for provider configuration with environment-specific behavior.
+StartupValidators.ValidateGoogleAuth(googleSettings, app.Environment, logger);
 
-// Load mock campaigns
-var campaigns = SeedData.Campaigns;
+// Global exception handling middleware (catches unhandled exceptions and returns ProblemDetails)
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-// GET /api/campaigns - returns mock campaigns
-app.MapGet("/api/campaigns", () => Results.Ok(campaigns))
+if (app.Environment.IsDevelopment())
+{
+    app.UseCors("AllowAll");
+    // Swagger enabled in Development only
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+else
+{
+    app.UseCors("DefaultPolicy");
+}
+
+// Health endpoints
+app.MapGet("/health/live", () => Results.Ok(new { status = "Live" }))
+   .WithName("Liveness");
+
+app.MapGet("/health/ready", (GoogleAuthSettings google) =>
+{
+    if (google != null && google.Enabled)
+    {
+        if (string.IsNullOrWhiteSpace(google.ClientId) || string.IsNullOrWhiteSpace(google.ClientSecret))
+        {
+            return Results.StatusCode(503);
+        }
+    }
+    return Results.Ok(new { status = "Ready" });
+}).WithName("Readiness");
+
+// API endpoints wired to application services
+app.MapGet("/api/campaigns", (ICampaignService svc) => Results.Ok(svc.GetAll()))
    .WithName("GetCampaigns")
    .WithTags("Campaigns");
 
-// POST /api/analyze - accepts campaign IDs and returns mock AI insights
-app.MapPost("/api/analyze", (AnalyzeRequest request) =>
+app.MapPost("/api/analyze", (AnalyzeRequest request, ICampaignService svc) =>
 {
     if (request.CampaignIds == null || request.CampaignIds.Count == 0)
     {
         return Results.BadRequest(new { Error = "Provide one or more campaign IDs in CampaignIds." });
     }
 
-    var selected = campaigns.Where(c => request.CampaignIds.Contains(c.Id)).ToList();
-    if (!selected.Any())
+    var response = svc.Analyze(request);
+    if (string.IsNullOrEmpty(response.Summary) && (response.WhatToScale == null || response.WhatToScale.Count == 0) && (response.WhatToStop == null || response.WhatToStop.Count == 0))
     {
         return Results.BadRequest(new { Error = "No campaigns found for the provided IDs." });
     }
-
-    // Simple mock "AI" logic: recommend scaling low cost per result, stopping high cost per result
-    var toScale = selected.OrderBy(c => c.CostPerResult).Take(3)
-        .Select(c => $"{c.Name} (Platform: {c.Platform}) - CostPerResult: {c.CostPerResult:C}")
-        .ToList();
-
-    var toStop = selected.OrderByDescending(c => c.CostPerResult).Take(3)
-        .Select(c => $"{c.Name} (Platform: {c.Platform}) - CostPerResult: {c.CostPerResult:C}")
-        .ToList();
-
-    var summary = $"Analyzed {selected.Count} campaign(s). Recommended scaling {toScale.Count} and stopping {toStop.Count}.";
-
-    var response = new AnalyzeResponse
-    {
-        WhatToScale = toScale,
-        WhatToStop = toStop,
-        Summary = summary
-    };
 
     return Results.Ok(response);
 })
@@ -66,3 +107,6 @@ app.MapPost("/api/analyze", (AnalyzeRequest request) =>
 .WithTags("Analysis");
 
 app.Run();
+
+// Expose Program for integration testing (WebApplicationFactory)
+public partial class Program { }
