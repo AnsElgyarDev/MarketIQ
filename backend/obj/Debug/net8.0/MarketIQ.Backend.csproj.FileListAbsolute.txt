@@ -92,3 +92,15 @@ D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug
 D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\obj\project.assets.json
 D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\obj\Debug\net8.0\MarketIQ.Backend.Tests.sourcelink.json
 D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\obj\Debug\net8.0\MvcTestingAppManifest.json
+D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\appsettings.Development.json
+D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\appsettings.json
+D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\MarketIQ.Backend.deps.json
+D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\MarketIQ.Backend.runtimeconfig.json
+D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\MarketIQ.Backend.staticwebassets.endpoints.json
+D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\MarketIQ.Backend.Tests.deps.json
+D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\MarketIQ.Backend.Tests.runtimeconfig.json
+D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\MvcTestingAppManifest.json
+D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\obj\MarketIQ.Backend.Tests.csproj.nuget.dgspec.json
+D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\obj\project.assets.json
+D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\obj\Debug\net8.0\MarketIQ.Backend.Tests.sourcelink.json
+D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\obj\Debug\net8.0\MvcTestingAppManifest.json
