@@ -5,26 +5,18 @@ import { CheckCircle, BarChart, Zap, Globe } from 'lucide-react'
 
 import logoSrc from '../assets/logo.png'
 import { useAuth } from '../context/AuthContext'
-import { Link } from 'react-router-dom'
+import ProfileMenu from '../components/ProfileMenu'
 
 const accent = '#d97757'
 
 function AuthArea() {
-  const { session, isAuthenticated, logout } = useAuth();
+  const { session, isAuthenticated } = useAuth();
 
   if (isAuthenticated && session) {
     return (
       <div className="flex items-center gap-4">
-        <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-md bg-[#111827] px-4 py-2 text-sm font-medium text-white">Dashboard</Link>
-        <button
-          onClick={() => logout()}
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700"
-        >
-          Sign out
-        </button>
-        <div className="hidden md:flex items-center gap-2 text-sm text-slate-600">
-          <img src={session.user.picture || logoSrc} alt={session.user.name || session.user.email} className="h-8 w-8 rounded-full object-cover" />
-        </div>
+        <Link to="/dashboard" className="hidden md:inline-flex items-center gap-2 rounded-md bg-[#111827] px-4 py-2 text-sm font-medium text-white">Dashboard</Link>
+        <ProfileMenu />
       </div>
     );
   }
@@ -57,6 +49,8 @@ const Metric = ({ label, value }: { label: string; value: string }) => (
 )
 
 export default function LandingPage(): JSX.Element {
+  const auth = useAuth();
+
   return (
     <div className="min-h-screen bg-[#FBF9F5] dark:bg-[#0f1720] text-[#111827] dark:text-[#ECE9E3] transition-colors duration-200">
       {/* Navbar */}
@@ -108,13 +102,21 @@ export default function LandingPage(): JSX.Element {
             </motion.p>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <Link to="/login" className="inline-flex items-center gap-2 rounded-md bg-[#d97757] px-5 py-3 text-sm font-semibold text-white shadow hover:translate-y-[-2px] transition-transform">
-                Sign In / Get Started
-              </Link>
+              {!auth.isAuthenticated ? (
+                <>
+                  <Link to="/login" className="inline-flex items-center gap-2 rounded-md bg-[#d97757] px-5 py-3 text-sm font-semibold text-white shadow hover:translate-y-[-2px] transition-transform">
+                    Sign In / Get Started
+                  </Link>
 
-              <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-md border border-slate-300 dark:border-slate-700 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">
-                Explore Dashboard Demo
-              </Link>
+                  <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-md border border-slate-300 dark:border-slate-700 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">
+                    Explore Dashboard Demo
+                  </Link>
+                </>
+              ) : (
+                <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-md bg-[#111827] px-5 py-3 text-sm font-semibold text-white shadow">
+                  Go to Dashboard
+                </Link>
+              )}
             </div>
 
             {/* Metrics & Social Proof */}
@@ -218,7 +220,11 @@ export default function LandingPage(): JSX.Element {
             <div className="text-sm text-slate-600">No credit card required — get a 14-day free trial.</div>
           </div>
           <div className="flex items-center gap-3">
-            <Link to="/login" className="rounded-md bg-[#d97757] px-4 py-2 text-sm font-medium text-white">Get Started</Link>
+            {!auth.isAuthenticated ? (
+              <Link to="/login" className="rounded-md bg-[#d97757] px-4 py-2 text-sm font-medium text-white">Get Started</Link>
+            ) : (
+              <Link to="/dashboard" className="rounded-md bg-[#111827] px-4 py-2 text-sm font-medium text-white">Go to Dashboard</Link>
+            )}
             <Link to="/dashboard" className="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-700">See Demo</Link>
           </div>
         </section>
