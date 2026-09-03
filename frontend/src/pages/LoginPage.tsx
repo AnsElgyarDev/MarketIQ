@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { AlertCircle, ArrowRight, Chrome, Lock, Sparkles } from 'lucide-react';
 
 import { initiateGoogleLogin } from '../services/auth';
+import { useAuth } from '../context/AuthContext';
 
 const providerOptions = [
   {
@@ -32,6 +33,7 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const auth = useAuth();
 
   const handleGoogleLogin = async () => {
     setError(null);
@@ -49,6 +51,12 @@ export default function LoginPage() {
   const handleDemoLogin = () => {
     navigate('/dashboard');
   };
+
+  if (auth.isAuthenticated) {
+    // already signed in — redirect to dashboard
+    navigate('/dashboard');
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-[#FBF9F5] px-6 py-8 text-slate-900 dark:bg-[#0f1720] dark:text-slate-100">

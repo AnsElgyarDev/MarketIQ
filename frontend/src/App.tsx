@@ -8,6 +8,7 @@ import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import OAuthCallbackPage from './pages/OAuthCallbackPage'
 import { mockCampaigns, type Campaign } from './data/mockData'
+import { AuthProvider } from './context/AuthContext'
 
 const THEME_KEY = "marketiq-theme"
 type ThemeMode = "light" | "dark"
@@ -119,14 +120,17 @@ export default function App() {
   }, [theme])
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/auth/callback" element={<OAuthCallbackPage />} />
-        <Route path="/dashboard" element={<Dashboard theme={theme} setTheme={setTheme} />} />
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/auth/callback" element={<OAuthCallbackPage />} />
+          <Route path="/dashboard" element={<Dashboard theme={theme} setTheme={setTheme} />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   )
 }
+
 

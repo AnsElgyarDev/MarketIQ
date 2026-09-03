@@ -3,10 +3,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 import { completeGoogleCallback, getStoredSession } from '../services/auth';
+import { useAuth } from '../context/AuthContext';
 
 export default function OAuthCallbackPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const auth = useAuth();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Finalizing your secure sign-in...');
 
@@ -17,6 +19,8 @@ export default function OAuthCallbackPage() {
     if (!code) {
       const storedSession = getStoredSession();
       if (storedSession) {
+        // ensure context is in sync with persisted session
+        auth.login(storedSession);
         setStatus('success');
         setMessage('You are already signed in. Redirecting...');
         navigate('/dashboard', { replace: true });
@@ -31,6 +35,9 @@ export default function OAuthCallbackPage() {
     const doExchange = async () => {
       try {
         const session = await completeGoogleCallback(code, state || undefined, `${window.location.origin}/auth/callback`);
+        // update auth context (this will persist and update UI globally)
+        auth.login(session);
+
         setStatus('success');
         setMessage(`Welcome back, ${session.user.name || session.user.email || 'there'}! Redirecting...`);
 
