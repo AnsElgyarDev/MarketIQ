@@ -34,9 +34,27 @@ namespace MarketIQ.Backend.Startup
                 if (!clientIdPresent || !clientSecretPresent)
                 {
                     logger.LogWarning("Google auth is enabled in {Environment} but credentials are missing; disabling Google auth for this run. Set Auth:Providers:Google:ClientId and ClientSecret to enable.", env.EnvironmentName);
-                    // Disable for this runtime so the rest of the app can behave safely
                     settings.Enabled = false;
                 }
+            }
+        }
+
+        public static void ValidateJwtSettings(JwtSettings settings, IHostEnvironment env, ILogger logger)
+        {
+            if (settings == null) return;
+
+            if (string.IsNullOrWhiteSpace(settings.SecretKey))
+            {
+                var message = "JWT secret key is missing. Set Jwt:SecretKey via environment variables or User Secrets.";
+                logger.LogCritical(message);
+                throw new ApplicationException(message);
+            }
+
+            if (settings.ExpiryMinutes <= 0)
+            {
+                var message = "JWT expiry must be greater than zero. Check Jwt:ExpiryMinutes.";
+                logger.LogCritical(message);
+                throw new ApplicationException(message);
             }
         }
     }

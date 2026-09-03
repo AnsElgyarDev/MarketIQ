@@ -3,24 +3,30 @@ using MarketIQ.Backend.MockData;
 using MarketIQ.Backend.Config;
 using MarketIQ.Backend.Middleware;
 using MarketIQ.Backend.Infrastructure;
+using MarketIQ.Backend.Infrastructure.Auth;
 using MarketIQ.Backend.Services;
 using MarketIQ.Backend.Startup;
-using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure basic logging (console). Replace with Serilog in future for production sinks.
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
-// Bind provider configuration early so we can validate startup behavior based on environment.
 var googleSection = builder.Configuration.GetSection("Auth:Providers:Google");
 var googleSettings = new GoogleAuthSettings();
 googleSection.Bind(googleSettings);
-// Register the bound settings instance for later checks (no provider wiring yet)
-builder.Services.AddSingleton(googleSettings);
+var jwtSection = builder.Configuration.GetSection("Jwt");
+var jwtSettings = jwtSection.Get<JwtSettings>() ?? new JwtSettings();
 
-// Configure CORS - development allows all, production should be restricted via AllowedOrigins config
+builder.Services.Configure<GoogleAuthSettings>(googleSection);
+builder.Services.Configure<JwtSettings>(jwtSection);
+builder.Services.AddSingleton(googleSettings);
+builder.Services.AddSingleton(jwtSettings);
+
 builder.Services.AddCors(options =>
 {
     if (builder.Environment.IsDevelopment())
@@ -29,8 +35,15 @@ builder.Services.AddCors(options =>
     }
     else
     {
-        var origins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? new string[0];
-        options.AddPolicy("DefaultPolicy", p => p.WithOrigins(origins).AllowAnyMethod().AllowAnyHeader().AllowCredentials());
+        var origins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+        if (origins.Length == 0)
+        {
+            options.AddPolicy("DefaultPolicy", p => p.SetIsOriginAllowed(_ => false));
+        }
+        else
+        {
+            options.AddPolicy("DefaultPolicy", p => p.WithOrigins(origins).AllowAnyMethod().AllowAnyHeader().AllowCredentials());
+        }
     }
 });
 
@@ -40,25 +53,61 @@ if (builder.Environment.IsDevelopment())
     builder.Services.AddSwaggerGen();
 }
 
-// Application services (in-memory for now)
 builder.Services.AddSingleton<ICampaignService, InMemoryCampaignService>();
-// No provider implementations yet - register a safe disabled provider by default
-builder.Services.AddSingleton<IAuthProvider, AuthDisabledProvider>();
+
+var startupLogger = LoggerFactory.Create(logging => logging.AddConsole()).CreateLogger("MarketIQ.Startup");
+StartupValidators.ValidateGoogleAuth(googleSettings, builder.Environment, startupLogger);
+StartupValidators.ValidateJwtSettings(jwtSettings, builder.Environment, startupLogger);
+
+if (googleSettings.Enabled)
+{
+    builder.Services.AddHttpClient<IAuthProvider, GoogleAuthProvider>();
+}
+else
+{
+    builder.Services.AddSingleton<IAuthProvider, AuthDisabledProvider>();
+}
+
+builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtSettings.Issuer,
+        ValidAudience = jwtSettings.Audience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
+        ClockSkew = TimeSpan.FromMinutes(1)
+    };
+});
+
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
 var logger = app.Logger;
+if (!googleSettings.Enabled)
+{
+    logger.LogWarning("Google auth is disabled for this runtime. The app is running with AuthDisabledProvider.");
+}
 
-// Startup validation for provider configuration with environment-specific behavior.
-StartupValidators.ValidateGoogleAuth(googleSettings, app.Environment, logger);
-
-// Global exception handling middleware (catches unhandled exceptions and returns ProblemDetails)
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseAuthentication();
+app.UseAuthorization();
 
 if (app.Environment.IsDevelopment())
 {
     app.UseCors("AllowAll");
-    // Swagger enabled in Development only
     app.UseSwagger();
     app.UseSwaggerUI();
 }
@@ -67,7 +116,6 @@ else
     app.UseCors("DefaultPolicy");
 }
 
-// Health endpoints
 app.MapGet("/health/live", () => Results.Ok(new { status = "Live" }))
    .WithName("Liveness");
 
@@ -83,7 +131,6 @@ app.MapGet("/health/ready", (GoogleAuthSettings google) =>
     return Results.Ok(new { status = "Ready" });
 }).WithName("Readiness");
 
-// API endpoints wired to application services
 app.MapGet("/api/campaigns", (ICampaignService svc) => Results.Ok(svc.GetAll()))
    .WithName("GetCampaigns")
    .WithTags("Campaigns");
@@ -106,7 +153,8 @@ app.MapPost("/api/analyze", (AnalyzeRequest request, ICampaignService svc) =>
 .WithName("AnalyzeCampaigns")
 .WithTags("Analysis");
 
+app.MapGoogleAuthEndpoints();
+
 app.Run();
 
-// Expose Program for integration testing (WebApplicationFactory)
 public partial class Program { }

@@ -79,8 +79,8 @@ export default function LandingPage(): JSX.Element {
             </motion.p>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-md bg-[#d97757] px-5 py-3 text-sm font-semibold text-white shadow hover:translate-y-[-2px] transition-transform">
-                Launch Free Trial
+              <Link to="/login" className="inline-flex items-center gap-2 rounded-md bg-[#d97757] px-5 py-3 text-sm font-semibold text-white shadow hover:translate-y-[-2px] transition-transform">
+                Sign In / Get Started
               </Link>
 
               <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-md border border-slate-300 dark:border-slate-700 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">
@@ -189,8 +189,8 @@ export default function LandingPage(): JSX.Element {
             <div className="text-sm text-slate-600">No credit card required — get a 14-day free trial.</div>
           </div>
           <div className="flex items-center gap-3">
-            <Link to="/dashboard" className="rounded-md bg-[#d97757] px-4 py-2 text-sm font-medium text-white">Try Dashboard</Link>
-            <a href="#pricing" className="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-700">See Pricing</a>
+            <Link to="/login" className="rounded-md bg-[#d97757] px-4 py-2 text-sm font-medium text-white">Get Started</Link>
+            <Link to="/dashboard" className="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-700">See Demo</Link>
           </div>
         </section>
 
