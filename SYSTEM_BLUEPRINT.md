@@ -12,6 +12,7 @@ IMPORTANT: This file contains no secrets. Do not store production secrets in rep
 ---
 
 Table of contents
+
 - Executive summary
 - High-Level Architecture & Tech Stack
 - Directory structure (high-level) and key files (with links)
@@ -30,10 +31,12 @@ Table of contents
 ## Executive summary
 
 MarketIQ is implemented as a two-tier web application:
+
 - Backend: ASP.NET Core minimal API (net8.0) implementing authentication providers, JWT issuance, global exception handling, and application endpoints.
 - Frontend: Vite + React SPA using TypeScript, with client-side routing and an AuthContext for session state.
 
 Authentication architecture:
+
 - Google OAuth provider adapter (isolated in Infrastructure/Auth) performs authorization URL creation, authorization code exchange with Google, userinfo retrieval, and returns a validated AuthUserResult.
 - JwtTokenService issues production-grade signed JWTs (HMAC-SHA256) using secret loaded via Options pattern.
 - Startup enforces strict validation: JWT secret is required (fail-fast), Google provider is environment-aware (lenient in Development, fail in Production if enabled but missing creds).
@@ -106,6 +109,7 @@ Root: D:/MarketIQ-SaaS
 ## Authentication & Security Implementation (current)
 
 ### Configuration keys and mapping
+
 - Google provider keys (stored in appsettings or User Secrets):
   - `Auth:Providers:Google:Enabled` -> GoogleAuthSettings.Enabled
   - `Auth:Providers:Google:ClientId` -> GoogleAuthSettings.ClientId
@@ -118,14 +122,17 @@ Root: D:/MarketIQ-SaaS
   - `Jwt:ExpiryMinutes` -> JwtSettings.ExpiryMinutes
 
 Bindings are performed using:
+
 - `builder.Configuration.GetSection("Auth:Providers:Google")` and `builder.Services.Configure<GoogleAuthSettings>(...)` in [Program.cs](/D:/MarketIQ-SaaS/backend/Program.cs)
 - `builder.Configuration.GetSection("Jwt")` and `builder.Services.Configure<JwtSettings>(...)`
 
 User secrets
+
 - Project has `<UserSecretsId>market-iq-backend-secret-id-unique</UserSecretsId>` in [MarketIQ.Backend.csproj](/D:/MarketIQ-SaaS/backend/MarketIQ.Backend.csproj).
 - Use `dotnet user-secrets set "Jwt:SecretKey" "<secret>" --project D:/MarketIQ-SaaS/backend/MarketIQ.Backend.csproj` in Development to set secrets locally. Note that the user-secrets provider is loaded automatically when `ASPNETCORE_ENVIRONMENT=Development`.
 
 ### OAuth flow (end-to-end mapping)
+
 1. Frontend initiates login
    - Calls backend GET `/api/auth/google/login?redirect_uri=<frontend-callback>` via `initiateGoogleLogin()` in [frontend/src/services/auth.ts](/D:/MarketIQ-SaaS/frontend/src/services/auth.ts).
    - Backend `/api/auth/google/login` (mapped in [GoogleAuthEndpoints.cs](/D:/MarketIQ-SaaS/backend/Infrastructure/Auth/GoogleAuthEndpoints.cs)):
@@ -148,6 +155,7 @@ User secrets
    - AuthContext picks up persisted session at startup via `getStoredSession()` and updates UI state via `auth.login(session)` invoked in callback handler.
 
 ### Startup validation & fail-fast rules
+
 - `StartupValidators.ValidateJwtSettings()` (in [StartupValidators.cs](/D:/MarketIQ-SaaS/backend/Models/StartupValidators.cs)) throws an ApplicationException if `Jwt:SecretKey` is missing — this is a deliberate fail-fast for security.
 - `ValidateGoogleAuth()` enforces environment-aware behavior: Production throws if Google enabled but missing creds; Development logs a warning and disables provider (lenient). This prevents previous unhandled 500s.
 
@@ -156,23 +164,28 @@ User secrets
 ## Current State, Known Gaps, & Security Risk Matrix
 
 Summary of current security posture:
+
 - Working Google OAuth flow and JWT issuance.
 - Client persists session in localStorage/sessionStorage and uses React AuthContext for UI state.
 
 High-priority gaps (must fix before public production)
+
 1. State/CSRF validation: currently the backend issues a `state` in `/login` but does not validate it in `/callback` against server-side stored state or signed state. This enables CSRF and code-injection risks.
 2. id_token validation: backend receives `id_token` but does not validate its signature or `aud/iss/exp` claims using Google's JWKs. Relying only on userinfo endpoint is weaker.
 3. Storage: client-side storage (localStorage/sessionStorage) for JWT is vulnerable to XSS. Production should use server-set Secure, HttpOnly cookies with SameSite protections.
 
 Medium-priority gaps
+
 - PKCE: Not implemented. For SPA flows, implement PKCE and validate code_verifier at token exchange.
 - Refresh tokens: If refresh tokens are used, they must be rotated and stored securely (server-side or in secure cookie). Current flow returns refresh_token but it is not persisted nor rotated.
 
 Low-priority improvements
+
 - Add `email_verified` check on userinfo and reject accounts where email_verified is false.
 - Improve log messages and monitoring for suspicious token activity.
 
 Risk matrix (brief)
+
 - CSRF/Code Injection: High (no server-side state validation)
 - Token forgery via id_token: High (no id_token verification)
 - XSS token theft: High (client storing JWT in localStorage)
@@ -183,20 +196,16 @@ Risk matrix (brief)
 ## Recommended remediation roadmap (prioritized)
 
 Phase A — Critical (minimum before public rollout)
+
 1. Implement server-side state verification (or signed HMAC state):
    - Option 1: store state in a short-lived in-memory cache (ConcurrentDictionary + background expiration) keyed by state and optionally bound to a session cookie.
-   - Option 2: sign state (HMAC with application secret) and validate signature in callback (stateless).  Estimated effort: 1-2 dev days.
+   - Option 2: sign state (HMAC with application secret) and validate signature in callback (stateless). Estimated effort: 1-2 dev days.
 2. Validate id_token for signature and claims using `Microsoft.IdentityModel.Tokens` and Google's JWKs (https://www.googleapis.com/oauth2/v3/certs). Reject if invalid. Estimated effort: 1-2 dev days.
 3. Ensure `email_verified` check is applied.
 
-Phase B — Stronger (recommended for production)
-4. Move session token to server-set Secure HttpOnly SameSite cookie. Backend returns 204 or JSON but sets cookie containing JWT. Frontend stops storing in localStorage. Estimated effort: 2-3 dev days (backend and frontend changes, cookie-to-header bridging for APIs).
-5. Implement PKCE for SPA flows. Estimated effort: 1-2 dev days.
-6. Implement refresh token rotation and server-side refresh endpoint. Estimated effort: 2-3 dev days.
+Phase B — Stronger (recommended for production) 4. Move session token to server-set Secure HttpOnly SameSite cookie. Backend returns 204 or JSON but sets cookie containing JWT. Frontend stops storing in localStorage. Estimated effort: 2-3 dev days (backend and frontend changes, cookie-to-header bridging for APIs). 5. Implement PKCE for SPA flows. Estimated effort: 1-2 dev days. 6. Implement refresh token rotation and server-side refresh endpoint. Estimated effort: 2-3 dev days.
 
-Phase C — Observability and Ops
-7. Add structured logging for auth events, rate-limit token exchanges, and alert on suspicious behavior.
-8. Integrate secret management (Key Vault / AWS Secrets Manager) for production; do not rely on User Secrets.
+Phase C — Observability and Ops 7. Add structured logging for auth events, rate-limit token exchanges, and alert on suspicious behavior. 8. Integrate secret management (Key Vault / AWS Secrets Manager) for production; do not rely on User Secrets.
 
 ---
 
@@ -204,39 +213,41 @@ Phase C — Observability and Ops
 
 1. Backend user secrets (development only)
 
-  dotnet user-secrets set "Jwt:SecretKey" "<your-secret>" --project D:/MarketIQ-SaaS/backend/MarketIQ.Backend.csproj
-  dotnet user-secrets set "Jwt:Issuer" "MarketIQ" --project D:/MarketIQ-SaaS/backend/MarketIQ.Backend.csproj
-  dotnet user-secrets set "Jwt:Audience" "MarketIQ-Users" --project D:/MarketIQ-SaaS/backend/MarketIQ.Backend.csproj
-  dotnet user-secrets set "Jwt:ExpiryMinutes" "60" --project D:/MarketIQ-SaaS/backend/MarketIQ.Backend.csproj
-  dotnet user-secrets set "Auth:Providers:Google:Enabled" "true" --project D:/MarketIQ-SaaS/backend/MarketIQ.Backend.csproj
-  dotnet user-secrets set "Auth:Providers:Google:ClientId" "<google-client-id>" --project D:/MarketIQ-SaaS/backend/MarketIQ.Backend.csproj
-  dotnet user-secrets set "Auth:Providers:Google:ClientSecret" "<google-client-secret>" --project D:/MarketIQ-SaaS/backend/MarketIQ.Backend.csproj
-  dotnet user-secrets set "Auth:Providers:Google:RedirectUri" "http://localhost:5173/auth/callback" --project D:/MarketIQ-SaaS/backend/MarketIQ.Backend.csproj
+dotnet user-secrets set "Jwt:SecretKey" "<your-secret>" --project D:/MarketIQ-SaaS/backend/MarketIQ.Backend.csproj
+dotnet user-secrets set "Jwt:Issuer" "MarketIQ" --project D:/MarketIQ-SaaS/backend/MarketIQ.Backend.csproj
+dotnet user-secrets set "Jwt:Audience" "MarketIQ-Users" --project D:/MarketIQ-SaaS/backend/MarketIQ.Backend.csproj
+dotnet user-secrets set "Jwt:ExpiryMinutes" "60" --project D:/MarketIQ-SaaS/backend/MarketIQ.Backend.csproj
+dotnet user-secrets set "Auth:Providers:Google:Enabled" "true" --project D:/MarketIQ-SaaS/backend/MarketIQ.Backend.csproj
+dotnet user-secrets set "Auth:Providers:Google:ClientId" "<google-client-id>" --project D:/MarketIQ-SaaS/backend/MarketIQ.Backend.csproj
+dotnet user-secrets set "Auth:Providers:Google:ClientSecret" "<google-client-secret>" --project D:/MarketIQ-SaaS/backend/MarketIQ.Backend.csproj
+dotnet user-secrets set "Auth:Providers:Google:RedirectUri" "http://localhost:5173/auth/callback" --project D:/MarketIQ-SaaS/backend/MarketIQ.Backend.csproj
 
 2. Start backend (Development environment to load user secrets):
 
-  PowerShell:
-  $env:ASPNETCORE_ENVIRONMENT = 'Development'
-  dotnet run --project D:/MarketIQ-SaaS/backend/MarketIQ.Backend.csproj
+PowerShell:
+$env:ASPNETCORE_ENVIRONMENT = 'Development'
+dotnet run --project D:/MarketIQ-SaaS/backend/MarketIQ.Backend.csproj
 
 3. Frontend env (so client targets backend):
 
-  Create file: D:/MarketIQ-SaaS/frontend/.env.local
-  Content:
-  VITE_API_URL=http://localhost:5000
+Create file: D:/MarketIQ-SaaS/frontend/.env.local
+Content:
+VITE_API_URL=http://localhost:5000
 
-  Start frontend:
-  cd D:/MarketIQ-SaaS/frontend
-  npm install
-  npm run dev
+Start frontend:
+cd D:/MarketIQ-SaaS/frontend
+npm install
+npm run dev
 
 4. Smoke tests
-  - Verify backend ready: curl http://localhost:5000/health/ready -> {"status":"Ready"}
-  - Initiate login: open http://localhost:5173/login, click Google sign-in (redirect to Google), perform consent and verify redirection to /auth/callback, get redirected to /dashboard with session.
+
+- Verify backend ready: curl http://localhost:5000/health/ready -> {"status":"Ready"}
+- Initiate login: open http://localhost:5173/login, click Google sign-in (redirect to Google), perform consent and verify redirection to /auth/callback, get redirected to /dashboard with session.
 
 ---
 
 ## CI / Secrets / Production notes
+
 - Do not store Jwt:SecretKey or Google client secrets in repository or plaintext. Use your cloud provider secrets manager or GitHub Actions secrets for CI.
 - CI checks should include secret-scanning and a job that verifies required secrets exist in the environment before deploying to production (e.g., fail CI if necessary secrets missing).
 - Production must set ASPNETCORE_ENVIRONMENT=Production and supply Jwt:SecretKey and Google creds via environment variables or a secrets provider. In Production, StartupValidators will fail-fast if Jwt:SecretKey missing or Google enabled but missing credentials.
@@ -244,6 +255,7 @@ Phase C — Observability and Ops
 ---
 
 ## Appendix: Useful commands & references
+
 - List user secrets for the project (local):
   dotnet user-secrets list --project D:/MarketIQ-SaaS/backend/MarketIQ.Backend.csproj
 

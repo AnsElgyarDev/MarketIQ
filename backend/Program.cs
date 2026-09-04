@@ -26,6 +26,7 @@ builder.Services.Configure<GoogleAuthSettings>(googleSection);
 builder.Services.Configure<JwtSettings>(jwtSection);
 builder.Services.AddSingleton(googleSettings);
 builder.Services.AddSingleton(jwtSettings);
+builder.Services.AddTransient<OpenAIService>();
 
 builder.Services.AddCors(options =>
 {
