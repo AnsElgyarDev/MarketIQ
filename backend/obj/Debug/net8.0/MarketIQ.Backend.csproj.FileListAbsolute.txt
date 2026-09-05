@@ -104,3 +104,9 @@ D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug
 D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\obj\project.assets.json
 D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\obj\Debug\net8.0\MarketIQ.Backend.Tests.sourcelink.json
 D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\bin\Debug\net8.0\tests\obj\Debug\net8.0\MvcTestingAppManifest.json
+D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\Azure.AI.OpenAI.dll
+D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\Azure.Core.dll
+D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\Microsoft.Bcl.AsyncInterfaces.dll
+D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\OpenAI.dll
+D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\System.ClientModel.dll
+D:\MarketIQ-SaaS\backend\bin\Debug\net8.0\System.Memory.Data.dll

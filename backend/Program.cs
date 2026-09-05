@@ -96,6 +96,15 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+app.MapPost("/api/aiagent/ask", async (AgentRequest request, OpenAIService openAIService) =>
+{
+    if (string.IsNullOrEmpty(request.Prompt))
+        return Results.BadRequest("Prompt cannot be empty.");
+
+    string aiResponse = await openAIService.GetAiResponseAsync(request.Prompt);
+    return Results.Ok(new { response = aiResponse });
+});
+
 var logger = app.Logger;
 if (!googleSettings.Enabled)
 {
@@ -159,3 +168,4 @@ app.MapGoogleAuthEndpoints();
 app.Run();
 
 public partial class Program { }
+public record AgentRequest(string Prompt);
