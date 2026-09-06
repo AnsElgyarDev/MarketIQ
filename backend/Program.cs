@@ -10,8 +10,28 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Azure;
+using Azure.AI.OpenAI;
+using OpenAI.Chat;
+using Azure.AI.OpenAI.Chat;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var endpointString = builder.Configuration["AzureOpenAI:Endpoint"] 
+                     ?? "https://marketiq-ai-newservice.openai.azure.com/";
+var apiKey = builder.Configuration["AzureOpenAI:ApiKey"] 
+             ?? throw new InvalidOperationException("API Key is missing.");
+var deploymentName = builder.Configuration["AzureOpenAI:DeploymentName"] 
+                     ?? "gpt-5-mini";
+
+builder.Services.AddSingleton<ChatClient>(sp =>
+{
+    AzureOpenAIClient azureClient = new(new Uri(endpointString), new AzureKeyCredential(apiKey));
+    return azureClient.GetChatClient(deploymentName);
+});
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
@@ -26,7 +46,6 @@ builder.Services.Configure<GoogleAuthSettings>(googleSection);
 builder.Services.Configure<JwtSettings>(jwtSection);
 builder.Services.AddSingleton(googleSettings);
 builder.Services.AddSingleton(jwtSettings);
-builder.Services.AddTransient<OpenAIService>();
 
 builder.Services.AddCors(options =>
 {
@@ -96,15 +115,6 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-app.MapPost("/api/aiagent/ask", async (AgentRequest request, OpenAIService openAIService) =>
-{
-    if (string.IsNullOrEmpty(request.Prompt))
-        return Results.BadRequest("Prompt cannot be empty.");
-
-    string aiResponse = await openAIService.GetAiResponseAsync(request.Prompt);
-    return Results.Ok(new { response = aiResponse });
-});
-
 var logger = app.Logger;
 if (!googleSettings.Enabled)
 {
@@ -165,7 +175,52 @@ app.MapPost("/api/analyze", (AnalyzeRequest request, ICampaignService svc) =>
 
 app.MapGoogleAuthEndpoints();
 
-app.Run();
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
+app.UseHttpsRedirection();
+
+app.MapPost("/api/ai/chat", async (ChatRequest request, ChatClient chatClient) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Prompt))
+    {
+        return Results.BadRequest(new { error = "Prompt cannot be empty." });
+    }
+
+    try
+    {
+        var requestOptions = new ChatCompletionOptions()
+        {
+            MaxOutputTokenCount = 10000,
+        };
+
+#pragma warning disable AOAI001
+        requestOptions.SetNewMaxCompletionTokensPropertyEnabled(true);
+#pragma warning restore AOAI001
+
+        var messages = new List<ChatMessage>
+        {
+            new SystemChatMessage("You are a helpful assistant for MarketIQ backend."),
+            new UserChatMessage(request.Prompt)
+        };
+
+        var response = chatClient.CompleteChat(messages, requestOptions);
+        var reply = response.Value.Content[0].Text;
+
+        return Results.Ok(new { success = true, data = reply });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.WithName("ChatWithAI");
+
+app.Run();
 public partial class Program { }
-public record AgentRequest(string Prompt);
+public record ChatRequest(string Prompt);
+
+

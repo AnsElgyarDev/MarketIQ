@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MarketIQ.Backend")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b8b807402f814de0d5adae09fc81d0a1fbd08e2b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f10a488f985a69952dd3c26a6eb0b1fa8ffc6af1")]
 [assembly: System.Reflection.AssemblyProductAttribute("MarketIQ.Backend")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MarketIQ.Backend")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

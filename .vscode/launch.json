@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "d:/MarketIQ-SaaS",
-      "program": "d:/MarketIQ-SaaS/build/Debug/outDebug",
+      "cwd": "d:/MarketIQ-SaaS/backend",
+      "program": "d:/MarketIQ-SaaS/backend/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [

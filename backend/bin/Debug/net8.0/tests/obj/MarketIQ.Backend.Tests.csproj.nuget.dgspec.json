@@ -54,7 +54,11 @@
           "dependencies": {
             "Azure.AI.OpenAI": {
               "target": "Package",
-              "version": "[2.1.0, )"
+              "version": "[2.2.0-beta.4, )"
+            },
+            "Azure.Core": {
+              "target": "Package",
+              "version": "[1.62.0, )"
             },
             "Microsoft.AspNetCore.Authentication.JwtBearer": {
               "target": "Package",
